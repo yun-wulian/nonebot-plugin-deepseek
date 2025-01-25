@@ -1,20 +1,32 @@
 [project]
-name = "Project Name"
+name = "nonebot-plugin-deepseek"
 version = "0.1.0"
-description = ""
+description = "NoneBot DeepSeek 插件。接入 DeepSeek 模型，提供智能对话与问答功能"
 authors = [
-    { name = "Your Name", email = "you@example.com" },
+    { name = "KomoriDev ", email = "mute231010@gmail.com" },
 ]
 license = { text = "MIT" }
 readme = "README.md"
 keywords = []
 
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "nonebot2>=2.4.1",
+    "nonebot-plugin-alconna>=0.54.2",
+    "httpx>=0.28.1",
+]
 
 [project.urls]
-homepage = ""
-repository = ""
+homepage = "https://github.com/KomoriDev/nonebot-plugin-deepseek"
+repository = "https://github.com/KomoriDev/nonebot-plugin-deepseek"
+
+[project.optional-dependencies]
+adapters = [
+    "nonebot-adapter-onebot>=2.4.6",
+]
+image = [
+    "nonebot-plugin-htmlrender>=0.5.1",
+]
 
 [tool.pdm.dev-dependencies]
 dev = [
@@ -22,6 +34,13 @@ dev = [
     "isort>=5.13.2",
     "pre-commit>=3.7.1",
 ]
+
+[tool.nonebot]
+adapters = [
+    { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }
+]
+plugins = ["nonebot_plugin_deepseek"]
+
 
 [tool.isort]
 profile = "black"
