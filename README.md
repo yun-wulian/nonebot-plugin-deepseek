@@ -94,10 +94,10 @@ plugins = ["nonebot_plugin_deepseek"]
 
 |            配置项             | 必填 |            默认值             |
 | :---------------------------: | :--: | :---------------------------: |
-|     deepseek\_\api_key        |  是  |              无               |
-|   deepseek\_\base_url         |  否  |  <https://api.deepseek.com>   |
-|   deepseek\_\prompt           |  否  |  You are a helpful assistant. |
-|      deepseek\_\md_to_pic     |  否  |             False             |
+|     deepseek__api_key        |  是  |              无               |
+|    deepseek__base_url        |  否  |  <https://api.deepseek.com>   |
+|   deepseek__prompt           |  否  |  You are a helpful assistant. |
+|      deepseek__md_to_pic     |  否  |             False             |
 
 ## 🎉 使用
 
