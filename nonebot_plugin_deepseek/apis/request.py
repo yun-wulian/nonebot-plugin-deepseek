@@ -1,10 +1,7 @@
 import httpx
-from openai import OpenAI
 
 from ..config import config
 from ..schemas import Balance, ChatCompletions
-
-client = OpenAI(api_key=config.api_key, base_url=config.base_url)
 
 
 class API:
