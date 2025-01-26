@@ -2,13 +2,14 @@ from importlib.util import find_spec
 
 import httpx
 from nonebot import require
+from nonebot.adapters import Event
 from nonebot.params import Depends
 from nonebot.permission import SuperUser
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_waiter")
 require("nonebot_plugin_alconna")
-from nonebot_plugin_waiter import prompt
+from nonebot_plugin_waiter import prompt, waiter
 from nonebot_plugin_alconna import Match, Command
 from nonebot_plugin_alconna.uniseg import UniMessage
 
@@ -45,7 +46,17 @@ if not config.md_to_pic:
 deepseek = (
     Command("deepseek [...content]")
     .option("--balance")
+    .option("--with-context")
+    .alias("ds")
     .build(use_cmd_start=True, extensions=[CleanDocExtension])
+)
+deepseek.shortcut(
+    "多轮对话",
+    {
+        "command": "deepseek --with-context",
+        "fuzzy": True,
+        "prefix": True,
+    },
 )
 deepseek.shortcut(
     "余额",
@@ -76,6 +87,34 @@ async def _(content: Match[UniMessage]):
             await deepseek.finish(completion.choices[0].message.content)
     except httpx.ReadTimeout:
         await deepseek.finish("网络超时，再试试吧")
+
+
+@deepseek.assign("with-context")
+async def _():
+    message = []
+
+    await deepseek.send("你想对 DeepSeek 说什么呢？输入 `结束` 以结束对话并清除上下文")
+
+    @waiter(waits=["message"], keep_session=True)
+    async def check(event: Event):
+        text = event.get_plaintext()
+        if text == "结束" or text.lower() == "done":
+            return False
+        return text
+
+    async for resp in check(default=False):
+        if resp is False:
+            await deepseek.finish("已结束对话")
+
+        message.append({"role": "user", "content": resp})
+        completion = await API.chat_with_context(message)
+        result = completion.choices[0].message.content
+
+        if result is None:
+            return
+
+        message.append({"role": "assistant", "content": result})
+        await deepseek.send(result)
 
 
 @deepseek.assign("balance")

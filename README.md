@@ -110,6 +110,16 @@ plugins = ["nonebot_plugin_deepseek"]
 /deepseek [内容]
 ```
 
+快捷命令：`/ds [内容]`
+
+### 多轮对话
+
+```bash
+/deepseek --with-context
+```
+
+快捷命令：`/ds --with-context` `/多轮对话`
+
 ### 余额
 
 > 权限：SUPERUSER
@@ -118,7 +128,7 @@ plugins = ["nonebot_plugin_deepseek"]
 /deepseek --balance
 ```
 
-快捷方式：`/余额`
+快捷方式：`/ds --balance` `/余额`
 
 ## 📸 效果图
 

@@ -32,6 +32,24 @@ class API:
         return ChatCompletions(**response.json())
 
     @classmethod
+    async def chat_with_context(cls, message: list[dict[str, str]]) -> ChatCompletions:
+        """多轮对话"""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{config.base_url}/chat/completions",
+                headers={**cls._headers, "Content-Type": "application/json"},
+                json={
+                    "messages": message,
+                    "model": "deepseek-chat",
+                    "response_format": {"type": "text"},
+                    "stop": None,
+                    "stream": False,
+                },
+                timeout=20,
+            )
+        return ChatCompletions(**response.json())
+
+    @classmethod
     async def query_balance(cls) -> Balance:
         """查询账号余额"""
         async with httpx.AsyncClient() as client:
