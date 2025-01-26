@@ -12,6 +12,7 @@ require("nonebot_plugin_alconna")
 from nonebot_plugin_waiter import prompt, waiter
 from nonebot_plugin_alconna import Match, Command
 from nonebot_plugin_alconna.uniseg import UniMessage
+from nonebot_plugin_alconna.builtins.extensions.reply import ReplyMergeExtension
 
 if find_spec("nonebot_plugin_htmlrender"):
     require("nonebot_plugin_htmlrender")
@@ -48,7 +49,7 @@ deepseek = (
     .option("--balance")
     .option("--with-context")
     .alias("ds")
-    .build(use_cmd_start=True, extensions=[CleanDocExtension])
+    .build(use_cmd_start=True, extensions=[ReplyMergeExtension, CleanDocExtension])
 )
 deepseek.shortcut(
     "多轮对话",
