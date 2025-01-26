@@ -1,3 +1,5 @@
+from importlib.util import find_spec
+
 import httpx
 from nonebot import require
 from nonebot.params import Depends
@@ -10,12 +12,12 @@ from nonebot_plugin_waiter import prompt
 from nonebot_plugin_alconna import Match, Command
 from nonebot_plugin_alconna.uniseg import UniMessage
 
-try:
+if find_spec("nonebot_plugin_htmlrender"):
     require("nonebot_plugin_htmlrender")
     from nonebot_plugin_htmlrender import md_to_pic
 
     is_to_pic = True
-except ImportError:
+else:
     is_to_pic = False
 
 from .apis import API
@@ -68,8 +70,8 @@ async def _(content: Match[UniMessage]):
     try:
         completion = await API.chat(chat_content)
         result = completion.choices[0].message.content
-        if md_to_pic and result:  # type: ignore
-            await UniMessage.image(raw=await md_to_pic(result)).finish()
+        if is_to_pic and result:
+            await UniMessage.image(raw=await md_to_pic(result)).finish()  # type: ignore
         else:
             await deepseek.finish(completion.choices[0].message.content)
     except httpx.ReadTimeout:
