@@ -79,7 +79,7 @@ async def _(content: Match[UniMessage]):
 
 
 @deepseek.assign("balance")
-async def _(is_superuser=Depends(SuperUser())):
+async def _(is_superuser: bool = Depends(SuperUser())):
     if not is_superuser:
         return
 
