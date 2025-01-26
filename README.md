@@ -132,7 +132,15 @@ plugins = ["nonebot_plugin_deepseek"]
 
 ## 📸 效果图
 
-~~理论上，这里应该有张效果图~~
+<p align="center">
+  <a href="https://github.com/KomoriDev/nonebot-plugin-deepseek" target="__blank">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./docs/screenshot-dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="./docs/screenshot-light.png">
+      <img src="./docs/screenshot-light.png" alt="DeepSeek - Preview" width="100%" />
+    </picture>
+  </a>
+</p>
 
 ## 📄 许可证
 
