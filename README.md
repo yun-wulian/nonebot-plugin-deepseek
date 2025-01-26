@@ -110,7 +110,7 @@ plugins = ["nonebot_plugin_deepseek"]
 /deepseek [内容]
 ```
 
-快捷命令：`/ds [内容]`
+快捷命令：`/ds [内容]` 或回复文本消息
 
 ### 多轮对话
 
