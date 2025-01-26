@@ -21,11 +21,14 @@ homepage = "https://github.com/KomoriDev/nonebot-plugin-deepseek"
 repository = "https://github.com/KomoriDev/nonebot-plugin-deepseek"
 
 [project.optional-dependencies]
+image = [
+    "nonebot-plugin-htmlrender>=0.5.1",
+]
 adapters = [
     "nonebot-adapter-onebot>=2.4.6",
 ]
-image = [
-    "nonebot-plugin-htmlrender>=0.5.1",
+fastapi = [
+    "nonebot2[fastapi]>=2.4.1",
 ]
 
 [tool.pdm.dev-dependencies]
