@@ -8,7 +8,7 @@ from nonebot.internal.adapter import Bot, Event, Message
 class CleanDocExtension(Extension):
     @property
     def priority(self) -> int:
-        return 10
+        return 15
 
     @property
     def id(self) -> str:
