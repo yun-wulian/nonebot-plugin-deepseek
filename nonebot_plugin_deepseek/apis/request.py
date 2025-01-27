@@ -1,6 +1,8 @@
 import httpx
 
 from ..config import config
+from ..function_call import registry
+from ..exception import RequestException
 from ..schemas import Balance, ChatCompletions
 
 
@@ -11,7 +13,7 @@ class API:
     }
 
     @classmethod
-    async def chat(cls, content: str) -> ChatCompletions:
+    async def chat(cls, message: list[dict[str, str]]) -> ChatCompletions:
         """普通对话"""
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -20,33 +22,18 @@ class API:
                 json={
                     "messages": [
                         {"content": config.prompt, "role": "system"},
-                        {"content": content, "role": "user"},
-                    ],
+                    ]
+                    + message,
                     "model": "deepseek-chat",
                     "response_format": {"type": "text"},
                     "stop": None,
                     "stream": False,
+                    "tools": registry.to_json(),
                 },
                 timeout=20,
             )
-        return ChatCompletions(**response.json())
-
-    @classmethod
-    async def chat_with_context(cls, message: list[dict[str, str]]) -> ChatCompletions:
-        """多轮对话"""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{config.base_url}/chat/completions",
-                headers={**cls._headers, "Content-Type": "application/json"},
-                json={
-                    "messages": message,
-                    "model": "deepseek-chat",
-                    "response_format": {"type": "text"},
-                    "stop": None,
-                    "stream": False,
-                },
-                timeout=20,
-            )
+        if error := response.json().get("error"):
+            raise RequestException(error["message"])
         return ChatCompletions(**response.json())
 
     @classmethod

@@ -16,6 +16,7 @@ class Function:
 class ToolCalls:
     """模型生成的 tool 调用，例如 function 调用。"""
 
+    index: int
     id: str
     """tool 调用的 ID"""
     type: Literal["function"]

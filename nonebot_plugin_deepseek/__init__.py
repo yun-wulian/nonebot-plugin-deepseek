@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from importlib.util import find_spec
 
 import httpx
@@ -24,6 +25,8 @@ else:
 
 from .apis import API
 from .config import Config, config
+from .function_call import registry
+from .exception import RequestException
 from .extension import CleanDocExtension
 
 __plugin_meta__ = PluginMetadata(
@@ -79,15 +82,32 @@ async def _(content: Match[UniMessage]):
     else:
         chat_content = content.result.extract_plain_text()
 
+    message = [{"role": "user", "content": chat_content}]
+
     try:
-        completion = await API.chat(chat_content)
-        result = completion.choices[0].message.content
-        if is_to_pic and result:
-            await UniMessage.image(raw=await md_to_pic(result)).finish()  # type: ignore
+        completion = await API.chat(message)
+        result = completion.choices[0].message
+        while result.tool_calls:
+            message.append(asdict(result))
+            fc_result = await registry.execute_tool_call(result.tool_calls[0])
+            message.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": result.tool_calls[0].id,
+                    "content": fc_result,
+                }
+            )
+            completion = await API.chat(message)
+            result = completion.choices[0].message
+
+        if is_to_pic and result.content:
+            await UniMessage.image(raw=await md_to_pic(result.content)).finish()  # type: ignore
         else:
-            await deepseek.finish(completion.choices[0].message.content)
+            await deepseek.finish(result.content)
     except httpx.ReadTimeout:
         await deepseek.finish("网络超时，再试试吧")
+    except RequestException as e:
+        await deepseek.finish(str(e))
 
 
 @deepseek.assign("with-context")
@@ -107,15 +127,26 @@ async def _():
         if resp is False:
             await deepseek.finish("已结束对话")
 
-        message.append({"role": "user", "content": resp})
-        completion = await API.chat_with_context(message)
-        result = completion.choices[0].message.content
+        if resp:
+            message.append({"role": "user", "content": resp})
 
-        if result is None:
-            return
+        completion = await API.chat(message)
+        result = completion.choices[0].message
 
-        message.append({"role": "assistant", "content": result})
-        await deepseek.send(result)
+        message.append(asdict(result))
+        if result.tool_calls:
+            fc_result = await registry.execute_tool_call(result.tool_calls[0])
+            message.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": result.tool_calls[0].id,
+                    "content": fc_result,
+                }
+            )
+            resp = ""
+            check.future.set_result("")
+            continue
+        await deepseek.send(result)  # type: ignore
 
 
 @deepseek.assign("balance")
