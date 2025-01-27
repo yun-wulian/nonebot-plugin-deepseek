@@ -1,3 +1,5 @@
+from typing import Literal
+
 import httpx
 
 from ..config import config
@@ -13,7 +15,9 @@ class API:
     }
 
     @classmethod
-    async def chat(cls, message: list[dict[str, str]]) -> ChatCompletions:
+    async def chat(
+        cls, message: list[dict[str, str]], model: Literal["chat", "reasoner"] = "chat"
+    ) -> ChatCompletions:
         """普通对话"""
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -29,8 +33,16 @@ class API:
                     "stop": None,
                     "stream": False,
                     "tools": registry.to_json(),
+                }
+                if model == "chat"
+                else {
+                    "messages": [
+                        {"content": config.prompt, "role": "system"},
+                    ]
+                    + message,
+                    "model": "deepseek-reasoner",
                 },
-                timeout=20,
+                timeout=50,
             )
         if error := response.json().get("error"):
             raise RequestException(error["message"])

@@ -120,6 +120,14 @@ plugins = ["nonebot_plugin_deepseek"]
 
 快捷命令：`/ds --with-context` `/多轮对话`
 
+### 深度思考
+
+```bash
+/deepseek -r | --reasoner [内容]
+```
+
+快捷命令：`/深度思考 [内容]`
+
 ### 余额
 
 > 权限：SUPERUSER

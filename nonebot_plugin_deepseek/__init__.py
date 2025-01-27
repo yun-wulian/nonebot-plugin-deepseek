@@ -11,8 +11,8 @@ from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 require("nonebot_plugin_waiter")
 require("nonebot_plugin_alconna")
 from nonebot_plugin_waiter import prompt, waiter
-from nonebot_plugin_alconna import Match, Command
 from nonebot_plugin_alconna.uniseg import UniMessage
+from nonebot_plugin_alconna import Match, Query, Command, store_true
 from nonebot_plugin_alconna.builtins.extensions.reply import ReplyMergeExtension
 
 if find_spec("nonebot_plugin_htmlrender"):
@@ -50,6 +50,7 @@ if not config.md_to_pic:
 deepseek = (
     Command("deepseek [...content]")
     .option("--balance")
+    .option("-r|--reasoner", action=store_true, default=False)
     .option("--with-context")
     .alias("ds")
     .build(use_cmd_start=True, extensions=[ReplyMergeExtension, CleanDocExtension])
@@ -58,6 +59,14 @@ deepseek.shortcut(
     "多轮对话",
     {
         "command": "deepseek --with-context",
+        "fuzzy": True,
+        "prefix": True,
+    },
+)
+deepseek.shortcut(
+    "深度思考",
+    {
+        "command": "deepseek --reasoner",
         "fuzzy": True,
         "prefix": True,
     },
@@ -72,8 +81,10 @@ deepseek.shortcut(
 )
 
 
-@deepseek.assign("$main")
-async def _(content: Match[UniMessage]):
+@deepseek.handle()
+async def _(
+    content: Match[UniMessage], is_reasoner: Query[bool] = Query("reasoner.value")
+):
     if not content.available:
         resp = await prompt("你想对 DeepSeek 说什么呢？", timeout=60)
         if resp is None:
@@ -85,7 +96,9 @@ async def _(content: Match[UniMessage]):
     message = [{"role": "user", "content": chat_content}]
 
     try:
-        completion = await API.chat(message)
+        completion = await API.chat(
+            message, model="reasoner" if is_reasoner.result else "chat"
+        )
         result = completion.choices[0].message
         while result.tool_calls:
             message.append(asdict(result))
@@ -97,13 +110,21 @@ async def _(content: Match[UniMessage]):
                     "content": fc_result,
                 }
             )
-            completion = await API.chat(message)
+            completion = await API.chat(
+                message, model="reasoner" if is_reasoner.result else "chat"
+            )
             result = completion.choices[0].message
 
-        if is_to_pic and result.content:
-            await UniMessage.image(raw=await md_to_pic(result.content)).finish()  # type: ignore
+        output = (
+            result.reasoning_content + f"\n---\n{result.content}"
+            if result.reasoning_content and result.content
+            else result.content
+        )
+
+        if is_to_pic:
+            await UniMessage.image(raw=await md_to_pic(output)).finish()  # type: ignore
         else:
-            await deepseek.finish(result.content)
+            await deepseek.finish(output)  # type: ignore
     except httpx.ReadTimeout:
         await deepseek.finish("网络超时，再试试吧")
     except RequestException as e:
