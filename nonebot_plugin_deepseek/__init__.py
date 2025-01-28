@@ -10,9 +10,10 @@ from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_waiter")
 require("nonebot_plugin_alconna")
+from arclet.alconna import config as alc_config
 from nonebot_plugin_waiter import prompt, waiter
 from nonebot_plugin_alconna.uniseg import UniMessage
-from nonebot_plugin_alconna import Match, Query, Command, store_true
+from nonebot_plugin_alconna import Match, Query, Command, Namespace, store_true
 from nonebot_plugin_alconna.builtins.extensions.reply import ReplyMergeExtension
 
 if find_spec("nonebot_plugin_htmlrender"):
@@ -24,6 +25,7 @@ else:
     is_to_pic = False
 
 from .apis import API
+from . import hook as hook
 from .config import Config, config
 from .function_call import registry
 from .exception import RequestException
@@ -47,12 +49,16 @@ __plugin_meta__ = PluginMetadata(
 if not config.md_to_pic:
     is_to_pic = False
 
+ns = Namespace("deepseek", disable_builtin_options=set())
+alc_config.namespaces["deepseek"] = ns
+
 deepseek = (
     Command("deepseek [...content]")
     .option("--balance")
     .option("-r|--reasoner", action=store_true, default=False)
     .option("--with-context")
     .alias("ds")
+    .namespace(alc_config.namespaces["deepseek"])
     .build(use_cmd_start=True, extensions=[ReplyMergeExtension, CleanDocExtension])
 )
 deepseek.shortcut(
