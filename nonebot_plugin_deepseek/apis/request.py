@@ -3,7 +3,8 @@ from typing import Literal
 import httpx
 
 from ..config import config
-from ..function_call import registry
+
+# from ..function_call import registry
 from ..exception import RequestException
 from ..schemas import Balance, ChatCompletions
 
@@ -32,7 +33,7 @@ class API:
                     "response_format": {"type": "text"},
                     "stop": None,
                     "stream": False,
-                    "tools": registry.to_json(),
+                    # "tools": registry.to_json(),
                 }
                 if model == "chat"
                 else {
