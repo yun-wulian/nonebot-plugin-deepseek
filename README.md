@@ -118,7 +118,7 @@ plugins = ["nonebot_plugin_deepseek"]
 /deepseek --with-context
 ```
 
-快捷命令：`/ds --with-context` `/多轮对话`
+快捷指令：`/ds --with-context` `/多轮对话`
 
 ### 深度思考
 
@@ -126,7 +126,7 @@ plugins = ["nonebot_plugin_deepseek"]
 /deepseek -r | --reasoner [内容]
 ```
 
-快捷命令：`/深度思考 [内容]`
+快捷指令：`/深度思考 [内容]`
 
 ### 余额
 
@@ -136,7 +136,20 @@ plugins = ["nonebot_plugin_deepseek"]
 /deepseek --balance
 ```
 
-快捷方式：`/ds --balance` `/余额`
+快捷指令：`/ds --balance` `/余额`
+
+### 自定义快捷指令
+
+> 该特性依赖于 [Alconna 快捷指令](https://nonebot.dev/docs/2.3.3/best-practice/alconna/command#command%E7%9A%84%E4%BD%BF%E7%94%A8)。自定义指令不带 `COMMAND_START`，若有必要需手动填写
+
+```bash
+# 增加
+/deepseek --shortcut <自定义指令> /deepseek
+# 删除
+/deepseek --shortcut delete <自定义指令>
+# 列出
+/deepseek --shortcut list
+```
 
 ## 📸 效果图
 
