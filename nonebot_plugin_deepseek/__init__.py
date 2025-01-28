@@ -81,56 +81,6 @@ deepseek.shortcut(
 )
 
 
-@deepseek.handle()
-async def _(
-    content: Match[UniMessage], is_reasoner: Query[bool] = Query("reasoner.value")
-):
-    if not content.available:
-        resp = await prompt("你想对 DeepSeek 说什么呢？", timeout=60)
-        if resp is None:
-            await deepseek.finish("等待超时")
-        chat_content = resp.extract_plain_text()
-    else:
-        chat_content = content.result.extract_plain_text()
-
-    message = [{"role": "user", "content": chat_content}]
-
-    try:
-        completion = await API.chat(
-            message, model="reasoner" if is_reasoner.result else "chat"
-        )
-        result = completion.choices[0].message
-        while result.tool_calls:
-            message.append(asdict(result))
-            fc_result = await registry.execute_tool_call(result.tool_calls[0])
-            message.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": result.tool_calls[0].id,
-                    "content": fc_result,
-                }
-            )
-            completion = await API.chat(
-                message, model="reasoner" if is_reasoner.result else "chat"
-            )
-            result = completion.choices[0].message
-
-        output = (
-            result.reasoning_content + f"\n---\n{result.content}"
-            if result.reasoning_content and result.content
-            else result.content
-        )
-
-        if is_to_pic:
-            await UniMessage.image(raw=await md_to_pic(output)).finish()  # type: ignore
-        else:
-            await deepseek.finish(output)  # type: ignore
-    except httpx.ReadTimeout:
-        await deepseek.finish("网络超时，再试试吧")
-    except RequestException as e:
-        await deepseek.finish(str(e))
-
-
 @deepseek.assign("with-context")
 async def _():
     message = []
@@ -188,3 +138,53 @@ async def _(is_superuser: bool = Depends(SuperUser())):
             for balance in balances.balance_infos
         )
     )
+
+
+@deepseek.handle()
+async def _(
+    content: Match[UniMessage], is_reasoner: Query[bool] = Query("reasoner.value")
+):
+    if not content.available:
+        resp = await prompt("你想对 DeepSeek 说什么呢？", timeout=60)
+        if resp is None:
+            await deepseek.finish("等待超时")
+        chat_content = resp.extract_plain_text()
+    else:
+        chat_content = content.result.extract_plain_text()
+
+    message = [{"role": "user", "content": chat_content}]
+
+    try:
+        completion = await API.chat(
+            message, model="reasoner" if is_reasoner.result else "chat"
+        )
+        result = completion.choices[0].message
+        while result.tool_calls:
+            message.append(asdict(result))
+            fc_result = await registry.execute_tool_call(result.tool_calls[0])
+            message.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": result.tool_calls[0].id,
+                    "content": fc_result,
+                }
+            )
+            completion = await API.chat(
+                message, model="reasoner" if is_reasoner.result else "chat"
+            )
+            result = completion.choices[0].message
+
+        output = (
+            result.reasoning_content + f"\n---\n{result.content}"
+            if result.reasoning_content and result.content
+            else result.content
+        )
+
+        if is_to_pic:
+            await UniMessage.image(raw=await md_to_pic(output)).finish()  # type: ignore
+        else:
+            await deepseek.finish(output)  # type: ignore
+    except httpx.ReadTimeout:
+        await deepseek.finish("网络超时，再试试吧")
+    except RequestException as e:
+        await deepseek.finish(str(e))
