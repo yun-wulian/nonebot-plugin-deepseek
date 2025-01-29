@@ -10,11 +10,24 @@ from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_waiter")
 require("nonebot_plugin_alconna")
+require("nonebot_plugin_localstore")
 from arclet.alconna import config as alc_config
-from nonebot_plugin_waiter import prompt, waiter
 from nonebot_plugin_alconna.uniseg import UniMessage
-from nonebot_plugin_alconna import Match, Query, Command, Namespace, store_true
+from nonebot_plugin_waiter import Waiter, prompt, suggest
 from nonebot_plugin_alconna.builtins.extensions.reply import ReplyMergeExtension
+from nonebot_plugin_alconna import (
+    Args,
+    Field,
+    Match,
+    Query,
+    Option,
+    Alconna,
+    MultiVar,
+    Namespace,
+    Subcommand,
+    CommandMeta,
+    on_alconna,
+)
 
 if find_spec("nonebot_plugin_htmlrender"):
     require("nonebot_plugin_htmlrender")
@@ -26,15 +39,15 @@ else:
 
 from .apis import API
 from . import hook as hook
-from .config import Config, config
 from .function_call import registry
 from .exception import RequestException
 from .extension import CleanDocExtension
+from .config import Config, config, model_config
 
 __plugin_meta__ = PluginMetadata(
     name="DeepSeek",
     description="接入 DeepSeek 模型，提供智能对话与问答功能",
-    usage="/deepseek",
+    usage="/deepseek -h",
     type="application",
     config=Config,
     homepage="https://github.com/KomoriDev/nonebot-plugin-deepseek",
@@ -52,78 +65,46 @@ if not config.md_to_pic:
 ns = Namespace("deepseek", disable_builtin_options=set())
 alc_config.namespaces["deepseek"] = ns
 
-deepseek = (
-    Command("deepseek [...content]")
-    .option("--balance")
-    .option("-r|--reasoner", action=store_true, default=False)
-    .option("--with-context")
-    .alias("ds")
-    .namespace(alc_config.namespaces["deepseek"])
-    .build(use_cmd_start=True, extensions=[ReplyMergeExtension, CleanDocExtension])
+deepseek = on_alconna(
+    Alconna(
+        "deepseek",
+        Args["content?#内容", MultiVar("str")],
+        Option(
+            "--use-model",
+            Args["model?#模型名称", config.enable_models, Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}")],
+            help_text="指定模型",
+        ),
+        Option("--with-context", help_text="启用多轮对话"),
+        Subcommand("--balance", help_text="查看余额"),
+        Subcommand(
+            "model",
+            Option("-l|--list", help_text="支持的模型列表"),
+            Option(
+                "--set-default",
+                Args[
+                    "model?#模型名称", config.enable_models, Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}")
+                ],
+                dest="set",
+                help_text="设置默认模型",
+            ),
+            help_text="模型相关设置",
+        ),
+        namespace=alc_config.namespaces["deepseek"],
+        meta=CommandMeta(
+            description=__plugin_meta__.description,
+            usage=__plugin_meta__.usage,
+        ),
+    ),
+    use_cmd_start=True,
+    aliases={"ds"},
+    extensions=[ReplyMergeExtension, CleanDocExtension],
 )
-deepseek.shortcut(
-    "多轮对话",
-    {
-        "command": "deepseek --with-context",
-        "fuzzy": True,
-        "prefix": True,
-    },
-)
-deepseek.shortcut(
-    "深度思考",
-    {
-        "command": "deepseek --reasoner",
-        "fuzzy": True,
-        "prefix": True,
-    },
-)
-deepseek.shortcut(
-    "余额",
-    {
-        "command": "deepseek --balance",
-        "fuzzy": False,
-        "prefix": True,
-    },
-)
 
-
-@deepseek.assign("with-context")
-async def _():
-    message = []
-
-    await deepseek.send("你想对 DeepSeek 说什么呢？输入 `结束` 以结束对话并清除上下文")
-
-    @waiter(waits=["message"], keep_session=True)
-    async def check(event: Event):
-        text = event.get_plaintext()
-        if text == "结束" or text.lower() == "done":
-            return False
-        return text
-
-    async for resp in check(default=False):
-        if resp is False:
-            await deepseek.finish("已结束对话")
-
-        if resp:
-            message.append({"role": "user", "content": resp})
-
-        completion = await API.chat(message)
-        result = completion.choices[0].message
-
-        message.append(asdict(result))
-        if result.tool_calls:
-            fc_result = await registry.execute_tool_call(result.tool_calls[0])
-            message.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": result.tool_calls[0].id,
-                    "content": fc_result,
-                }
-            )
-            resp = ""
-            check.future.set_result("")
-            continue
-        await deepseek.send(result)  # type: ignore
+deepseek.shortcut("多轮对话", {"command": "deepseek --with-context", "fuzzy": True, "prefix": True})
+deepseek.shortcut("深度思考", {"command": "deepseek --use-model deepseek-reasoner", "fuzzy": True, "prefix": True})
+deepseek.shortcut("余额", {"command": "deepseek --balance", "fuzzy": False, "prefix": True})
+deepseek.shortcut("模型列表", {"command": "deepseek model --list", "fuzzy": False, "prefix": True})
+deepseek.shortcut("设置默认模型", {"command": "deepseek model --set-default", "fuzzy": True, "prefix": True})
 
 
 @deepseek.assign("balance")
@@ -146,9 +127,44 @@ async def _(is_superuser: bool = Depends(SuperUser())):
     )
 
 
+@deepseek.assign("model.list")
+async def _():
+    model_list = "\n".join(
+        f"- {model}（默认）" if model == model_config.default_model else f"- {model}" for model in config.enable_models
+    )
+    message = (
+        f"支持的模型列表: \n{model_list}\n"
+        "输入 `/deepseek [内容] --use-model [模型名]` 单次选择模型\n"
+        "输入 `/deepseek model --set-default [模型名]` 设置默认模型"
+    )
+    await deepseek.finish(message)
+
+
+@deepseek.assign("model.set")
+async def _(
+    is_superuser: bool = Depends(SuperUser()),
+    model: Query[str] = Query("model.set.model"),
+):
+    if not is_superuser:
+        return
+
+    if not model.available:
+        resp = await suggest("请输入模型名称", config.enable_models)
+        if resp is None:
+            await deepseek.finish("等待超时")
+        model.result = resp.extract_plain_text()
+
+    model_config.default_model = model.result
+    model_config.save()
+    await deepseek.finish(f"已设置默认模型为：{model.result}")
+
+
 @deepseek.handle()
 async def _(
-    content: Match[UniMessage], is_reasoner: Query[bool] = Query("reasoner.value")
+    content: Match[tuple[str, ...]],
+    model_name: Query[str] = Query("use-model.model"),
+    model_option: Query[bool] = Query("use-model.value"),
+    context_option: Query[bool] = Query("with-context.value"),
 ):
     if not content.available:
         resp = await prompt("你想对 DeepSeek 说什么呢？", timeout=60)
@@ -156,46 +172,100 @@ async def _(
             await deepseek.finish("等待超时")
         chat_content = resp.extract_plain_text()
     else:
-        chat_content = content.result.extract_plain_text()
+        chat_content = " ".join(content.result)
+
+    if not model_option.available:
+        model_name.available = True
+        model_name.result = model_config.default_model
+
+    if not model_name.available:
+        resp = await suggest("请输入模型名称", config.enable_models)
+        if resp is None:
+            await deepseek.finish("等待超时")
+        model_name.result = resp.extract_plain_text()
 
     message = [{"role": "user", "content": chat_content}]
 
     try:
-        completion = await API.chat(
-            message, model="reasoner" if is_reasoner.result else "chat"
-        )
-        result = completion.choices[0].message
-        while result.tool_calls:
-            message.append(asdict(result))
-            fc_result = await registry.execute_tool_call(result.tool_calls[0])
-            message.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": result.tool_calls[0].id,
-                    "content": fc_result,
-                }
-            )
-            completion = await API.chat(
-                message, model="reasoner" if is_reasoner.result else "chat"
-            )
+        if not context_option.available:
+            completion = await API.chat(message, model=model_name.result)
             result = completion.choices[0].message
+            if result.tool_calls:
+                message.append(asdict(result))
+                fc_result = await registry.execute_tool_call(result.tool_calls[0])
+                message.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": result.tool_calls[0].id,
+                        "content": fc_result,
+                    }
+                )
+                completion = await API.chat(message, model=model_name.result)
+                result = completion.choices[0].message
 
-        output = (
-            result.reasoning_content + f"\n---\n{result.content}"
-            if result.reasoning_content and result.content
-            else result.content
-        )
+            output = (
+                f"<blockquote><p> {result.reasoning_content} </p></blockquote>" + result.content
+                if result.reasoning_content and result.content
+                else result.content
+            )
 
-        if not output:
-            return
+            if not output:
+                return
 
-        if is_to_pic:
-            unimsg = UniMessage.image(raw=await md_to_pic(output))  # type: ignore
-            if unimsg.__dict__:
-                await unimsg.finish()
-            await deepseek.finish(output)
-        else:
-            await deepseek.finish(output)
+            if is_to_pic:
+                unimsg = UniMessage.image(raw=await md_to_pic(output))  # type: ignore
+                if unimsg:
+                    await unimsg.finish()
+                await deepseek.finish(output)
+            else:
+                await deepseek.finish(output)
+
+        def handler(event: Event):
+            text = event.get_plaintext().strip().lower()
+            if text in ["结束", "取消", "done"]:
+                return False
+            return text
+
+        waiter = Waiter(waits=["message"], handler=handler, matcher=deepseek)
+        waiter.future.set_result("")
+
+        async for resp in waiter(default=False):
+            if resp is False:
+                await deepseek.finish("已结束对话")
+
+            if resp and isinstance(resp, str):
+                message.append({"role": "user", "content": resp})
+
+            completion = await API.chat(message, model=model_name.result)
+            result = completion.choices[0].message
+            cached_reasoning_content = result.reasoning_content
+            result.reasoning_content = None
+            message.append(asdict(result))
+
+            if result.tool_calls:
+                fc_result = await registry.execute_tool_call(result.tool_calls[0])
+                message.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": result.tool_calls[0].id,
+                        "content": fc_result,
+                    }
+                )
+                resp = ""
+                waiter.future.set_result("")
+                continue
+
+            output = (
+                cached_reasoning_content + f"\n----\n{result.content}"
+                if cached_reasoning_content and result.content
+                else result.content
+            )
+
+            if not output:
+                return
+
+            await deepseek.send(output)  # type: ignore
+
     except httpx.ReadTimeout:
         await deepseek.finish("网络超时，再试试吧")
     except RequestException as e:

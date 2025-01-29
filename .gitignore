@@ -166,3 +166,5 @@ shortcut.*
 
 # VSCode
 .vscode
+
+data/
