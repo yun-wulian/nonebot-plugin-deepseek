@@ -96,6 +96,7 @@ plugins = ["nonebot_plugin_deepseek"]
 | :---------------------------: | :--: | :---------------------------: |
 |     deepseek__api_key        |  是  |              无               |
 |    deepseek__base_url        |  否  |  <https://api.deepseek.com>   |
+|   deepseek__enable_models    |  否  |["deepseek-chat", "deepseek-reasoner"] |
 |   deepseek__prompt           |  否  |  You are a helpful assistant. |
 |      deepseek__md_to_pic     |  否  |             False             |
 
@@ -115,18 +116,31 @@ plugins = ["nonebot_plugin_deepseek"]
 ### 多轮对话
 
 ```bash
-/deepseek --with-context
+/deepseek --with-context [内容]
 ```
 
-快捷指令：`/ds --with-context` `/多轮对话`
+快捷指令：`/ds --with-context [内容]` `/多轮对话`
 
 ### 深度思考
 
 ```bash
-/deepseek -r | --reasoner [内容]
+/deepseek [内容] --use-model [模型名]
 ```
 
 快捷指令：`/深度思考 [内容]`
+
+### 设置
+
+> 权限：`设置默认模型` 指令仅 SUPERUSER 可用
+
+```bash
+# 查看支持的模型列表
+/deepseek model -l|--list
+# 设置默认模型
+/deepseek model --set-default [模型名]
+```
+
+快捷指令：`/模型列表` `/设置默认模型 [模型名]`
 
 ### 余额
 
@@ -150,6 +164,14 @@ plugins = ["nonebot_plugin_deepseek"]
 # 列出
 /deepseek --shortcut list
 ```
+
+例子:
+
+```bash
+user: /deepseek --shortcut /chat /deepseek --use-model deepseek-chat
+bot: deepseek::deepseek 的快捷指令: "/chat" 添加成功
+user: /chat
+bot: (使用模型 deepseek-chat)
 
 ## 📸 效果图
 
