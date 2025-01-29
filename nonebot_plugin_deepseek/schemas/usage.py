@@ -1,3 +1,4 @@
+from typing import Optional
 from dataclasses import dataclass
 
 
@@ -10,7 +11,7 @@ class PromptTokensDetails:
 class CompletionTokensDetails:
     """completion tokens 的详细信息。"""
 
-    reasoning_tokens: int | None = None
+    reasoning_tokens: Optional[int] = None
     """推理模型所产生的思维链 token 数量"""
 
 
@@ -33,7 +34,7 @@ class Usage:
     """用户 prompt 中，未命中上下文缓存的 token 数"""
     total_tokens: int
     """该请求中，所有 token 的数量（prompt + completion）"""
-    completion_tokens_details: CompletionTokensDetails | None = None
+    completion_tokens_details: Optional[CompletionTokensDetails] = None
 
     def __post_init__(self) -> None:
         if isinstance(self.prompt_tokens_details, dict):

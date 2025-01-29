@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Literal, TypeAlias
+from typing import Literal, Optional
+from typing_extensions import TypeAlias
 
 from .usage import Usage
 from .message import Message
@@ -20,7 +21,7 @@ class Choice:
     """该 completion 在模型生成的 completion 的选择列表中的索引"""
     message: Message
     """模型生成的 completion 消息"""
-    logprobs: Logprobs | None = None
+    logprobs: Optional[Logprobs] = None
     """该 choice 的对数概率信息"""
 
     def __post_init__(self) -> None:
@@ -44,7 +45,7 @@ class ChatCompletions:
     """对象的类型, 其值为 `chat.completion`"""
     usage: Usage
     """该对话补全请求的用量信息"""
-    system_fingerprint: str | None = None
+    system_fingerprint: Optional[str] = None
     """该指纹代表模型运行的后端配置"""
 
     def __post_init__(self) -> None:
