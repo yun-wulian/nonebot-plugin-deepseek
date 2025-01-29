@@ -172,6 +172,7 @@ user: /deepseek --shortcut /chat /deepseek --use-model deepseek-chat
 bot: deepseek::deepseek 的快捷指令: "/chat" 添加成功
 user: /chat
 bot: (使用模型 deepseek-chat)
+```
 
 ## 📸 效果图
 
