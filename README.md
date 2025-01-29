@@ -124,7 +124,7 @@ plugins = ["nonebot_plugin_deepseek"]
 ### 深度思考
 
 ```bash
-/deepseek [内容] --use-model [模型名]
+/deepseek [内容] --use-model deepseek-reasoner
 ```
 
 快捷指令：`/深度思考 [内容]`
