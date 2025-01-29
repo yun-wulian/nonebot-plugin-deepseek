@@ -186,10 +186,16 @@ async def _(
             else result.content
         )
 
+        if not output:
+            return
+
         if is_to_pic:
-            await UniMessage.image(raw=await md_to_pic(output)).finish()  # type: ignore
+            unimsg = UniMessage.image(raw=await md_to_pic(output))  # type: ignore
+            if unimsg.__dict__:
+                await unimsg.finish()
+            await deepseek.finish(output)
         else:
-            await deepseek.finish(output)  # type: ignore
+            await deepseek.finish(output)
     except httpx.ReadTimeout:
         await deepseek.finish("网络超时，再试试吧")
     except RequestException as e:
