@@ -91,6 +91,7 @@ plugins = ["nonebot_plugin_deepseek"]
 
 > [!note]
 > `api_key` 请从 [DeepSeek 开放平台](https://platform.deepseek.com/) 获取  
+> 若要接入本地模型，请参见：👉 [文档](./tutorial.md)  
 
 |            配置项             | 必填 |            默认值             |
 | :---------------------------: | :--: | :---------------------------: |
