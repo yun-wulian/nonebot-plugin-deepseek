@@ -25,7 +25,10 @@ class ModelConfig:
             self.default_prompt = data.get("default_prompt", self.default_prompt)
 
     def save(self):
-        config_data = {"default_model": self.default_model, "default_prompt": self.default_prompt}
+        config_data = {
+            "default_model": self.default_model,
+            "default_prompt": self.default_prompt,
+        }
         with open(self.file, "w") as f:
             json.dump(config_data, f, indent=2)
         self.load()
@@ -41,7 +44,7 @@ class CustomModel(BaseModel):
 class ScopedConfig(BaseModel):
     api_key: str = ""
     """Your API Key from deepseek"""
-    enabled_models: list[CustomModel] = [
+    enable_models: list[CustomModel] = [
         CustomModel(name="deepseek-chat"),
         CustomModel(name="deepseek-reasoner"),
     ]
@@ -54,11 +57,11 @@ class ScopedConfig(BaseModel):
     """Whether to send model thinking chain"""
 
     def get_enable_models(self) -> list[str]:
-        return [model.name for model in self.enabled_models]
+        return [model.name for model in self.enable_models]
 
     def get_model_url(self, model_name: str) -> str:
         """Get the base_url corresponding to the model"""
-        for model in self.enabled_models:
+        for model in self.enable_models:
             if model.name == model_name:
                 return model.base_url
         raise ValueError(f"Model {model_name} not enabled")

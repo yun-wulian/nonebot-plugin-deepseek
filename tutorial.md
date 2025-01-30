@@ -32,7 +32,7 @@ ollama run deepseek-r1:7b
 
 ```bash
 deepseek__api_key = "sk-xxx"
-deepseek__enabled_models='
+deepseek__enable_models='
 [
   { "name": "deepseek-chat" },
   { "name": "deepseek-reasoner" },
