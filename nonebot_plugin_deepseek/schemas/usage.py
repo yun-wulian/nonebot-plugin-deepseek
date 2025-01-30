@@ -26,22 +26,18 @@ class Usage:
     用户 prompt 所包含的 token 数
     该值等于 `prompt_cache_hit_token`s + `prompt_cache_miss_tokens`
     """
-    prompt_tokens_details: PromptTokensDetails
-    """我也不知道这是个啥，文档没写"""
-    prompt_cache_hit_tokens: int
-    """用户 prompt 中，命中上下文缓存的 token 数"""
-    prompt_cache_miss_tokens: int
-    """用户 prompt 中，未命中上下文缓存的 token 数"""
     total_tokens: int
     """该请求中，所有 token 的数量（prompt + completion）"""
+    prompt_tokens_details: Optional[PromptTokensDetails] = None
+    """我也不知道这是个啥，文档没写"""
+    prompt_cache_hit_tokens: Optional[int] = None
+    """用户 prompt 中，命中上下文缓存的 token 数"""
+    prompt_cache_miss_tokens: Optional[int] = None
+    """用户 prompt 中，未命中上下文缓存的 token 数"""
     completion_tokens_details: Optional[CompletionTokensDetails] = None
 
     def __post_init__(self) -> None:
         if isinstance(self.prompt_tokens_details, dict):
-            self.prompt_tokens_details = PromptTokensDetails(
-                **self.prompt_tokens_details
-            )
+            self.prompt_tokens_details = PromptTokensDetails(**self.prompt_tokens_details)
         if isinstance(self.completion_tokens_details, dict):
-            self.completion_tokens_details = CompletionTokensDetails(
-                **self.completion_tokens_details
-            )
+            self.completion_tokens_details = CompletionTokensDetails(**self.completion_tokens_details)
