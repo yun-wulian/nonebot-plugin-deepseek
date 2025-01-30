@@ -26,7 +26,7 @@ class API:
         #     json.update({"tools": registry.to_json()})
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{config.base_url}/chat/completions",
+                f"{config.get_model_url(model)}/chat/completions",
                 headers={**cls._headers, "Content-Type": "application/json"},
                 json=json,
                 timeout=50,
@@ -39,6 +39,9 @@ class API:
     async def query_balance(cls) -> Balance:
         """查询账号余额"""
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{config.base_url}/user/balance", headers=cls._headers)
+            response = await client.get(
+                f"{config.get_model_url('deepseek-chat')}/user/balance",
+                headers=cls._headers,
+            )
 
         return Balance(**response.json())

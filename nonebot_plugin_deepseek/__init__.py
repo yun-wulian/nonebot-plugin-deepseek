@@ -71,7 +71,11 @@ deepseek = on_alconna(
         Args["content?#内容", MultiVar("str")],
         Option(
             "--use-model",
-            Args["model?#模型名称", config.enable_models, Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}")],
+            Args[
+                "model?#模型名称",
+                config.get_enable_models(),
+                Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}"),
+            ],
             help_text="指定模型",
         ),
         Option("--with-context", help_text="启用多轮对话"),
@@ -82,7 +86,9 @@ deepseek = on_alconna(
             Option(
                 "--set-default",
                 Args[
-                    "model?#模型名称", config.enable_models, Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}")
+                    "model?#模型名称",
+                    config.get_enable_models(),
+                    Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}"),
                 ],
                 dest="set",
                 help_text="设置默认模型",
@@ -111,26 +117,29 @@ deepseek.shortcut("设置默认模型", {"command": "deepseek model --set-defaul
 async def _(is_superuser: bool = Depends(SuperUser())):
     if not is_superuser:
         return
+    try:
+        balances = await API.query_balance()
 
-    balances = await API.query_balance()
-
-    await deepseek.finish(
-        "".join(
-            f"""
-            货币：{balance.currency}
-            总的可用余额: {balance.total_balance}
-            未过期的赠金余额: {balance.granted_balance}
-            充值余额: {balance.topped_up_balance}
-            """
-            for balance in balances.balance_infos
+        await deepseek.finish(
+            "".join(
+                f"""
+                货币：{balance.currency}
+                总的可用余额: {balance.total_balance}
+                未过期的赠金余额: {balance.granted_balance}
+                充值余额: {balance.topped_up_balance}
+                """
+                for balance in balances.balance_infos
+            )
         )
-    )
+    except ValueError as e:
+        await deepseek.finish(str(e))
 
 
 @deepseek.assign("model.list")
 async def _():
     model_list = "\n".join(
-        f"- {model}（默认）" if model == model_config.default_model else f"- {model}" for model in config.enable_models
+        f"- {model}（默认）" if model == model_config.default_model else f"- {model}"
+        for model in config.get_enable_models()
     )
     message = (
         f"支持的模型列表: \n{model_list}\n"
@@ -149,7 +158,7 @@ async def _(
         return
 
     if not model.available:
-        resp = await suggest("请输入模型名称", config.enable_models)
+        resp = await suggest("请输入模型名称", config.get_enable_models())
         if resp is None:
             await deepseek.finish("等待超时")
         model.result = resp.extract_plain_text()
@@ -179,7 +188,7 @@ async def _(
         model_name.result = model_config.default_model
 
     if not model_name.available:
-        resp = await suggest("请输入模型名称", config.enable_models)
+        resp = await suggest("请输入模型名称", config.get_enable_models())
         if resp is None:
             await deepseek.finish("等待超时")
         model_name.result = resp.extract_plain_text()
@@ -264,7 +273,7 @@ async def _(
             if not output:
                 return
 
-            await deepseek.send(output)  # type: ignore
+            await deepseek.send(output)
 
     except httpx.ReadTimeout:
         await deepseek.finish("网络超时，再试试吧")
