@@ -12,8 +12,8 @@ require("nonebot_plugin_waiter")
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
 from arclet.alconna import config as alc_config
+from nonebot_plugin_waiter import Waiter, prompt
 from nonebot_plugin_alconna.uniseg import UniMessage
-from nonebot_plugin_waiter import Waiter, prompt, suggest
 from nonebot_plugin_alconna.builtins.extensions.reply import ReplyMergeExtension
 from nonebot_plugin_alconna import (
     Args,
@@ -72,9 +72,9 @@ deepseek = on_alconna(
         Option(
             "--use-model",
             Args[
-                "model?#模型名称",
+                "model#模型名称",
                 config.get_enable_models(),
-                Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}"),
+                Field(completion=lambda: f"请输入模型名，预期为：{config.get_enable_models()} 其中之一"),
             ],
             help_text="指定模型",
         ),
@@ -86,9 +86,9 @@ deepseek = on_alconna(
             Option(
                 "--set-default",
                 Args[
-                    "model?#模型名称",
+                    "model#模型名称",
                     config.get_enable_models(),
-                    Field(unmatch_tips=lambda x: f"预期为模型名称，而不是 {x}"),
+                    Field(completion=lambda: f"请输入模型名，预期为：{config.get_enable_models()} 其中之一"),
                 ],
                 dest="set",
                 help_text="设置默认模型",
@@ -101,8 +101,10 @@ deepseek = on_alconna(
             usage=__plugin_meta__.usage,
         ),
     ),
-    use_cmd_start=True,
     aliases={"ds"},
+    use_cmd_start=True,
+    skip_for_unmatch=False,
+    comp_config={"lite": True},
     extensions=[ReplyMergeExtension, CleanDocExtension],
 )
 
@@ -156,13 +158,6 @@ async def _(
 ):
     if not is_superuser:
         return
-
-    if not model.available:
-        resp = await suggest("请输入模型名称", config.get_enable_models())
-        if resp is None:
-            await deepseek.finish("等待超时")
-        model.result = resp.extract_plain_text()
-
     model_config.default_model = model.result
     model_config.save()
     await deepseek.finish(f"已设置默认模型为：{model.result}")
@@ -172,7 +167,6 @@ async def _(
 async def _(
     content: Match[tuple[str, ...]],
     model_name: Query[str] = Query("use-model.model"),
-    model_option: Query[bool] = Query("use-model.value"),
     context_option: Query[bool] = Query("with-context.value"),
 ):
     if not content.available:
@@ -183,15 +177,7 @@ async def _(
     else:
         chat_content = " ".join(content.result)
 
-    if not model_option.available:
-        model_name.available = True
-        model_name.result = model_config.default_model
-
-    if not model_name.available:
-        resp = await suggest("请输入模型名称", config.get_enable_models())
-        if resp is None:
-            await deepseek.finish("等待超时")
-        model_name.result = resp.extract_plain_text()
+    model_name.result = model_config.default_model
 
     message = [{"role": "user", "content": chat_content}]
 
