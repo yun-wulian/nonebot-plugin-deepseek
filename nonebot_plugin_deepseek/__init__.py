@@ -212,21 +212,22 @@ async def _(
                 completion = await API.chat(message, model=model_name.result)
                 result = completion.choices[0].message
 
-            output = (
-                f"<blockquote><p> {result.reasoning_content} </p></blockquote>" + result.content
-                if result.reasoning_content and result.content
-                else result.content
-            )
-
-            if not output:
-                return
-
             if is_to_pic:
+                output = (
+                    f"<blockquote><p> {result.reasoning_content} </p></blockquote>" + result.content
+                    if result.reasoning_content and config.enable_send_thinking and result.content
+                    else result.content
+                )
                 unimsg = UniMessage.image(raw=await md_to_pic(output))  # type: ignore
                 if unimsg:
                     await unimsg.finish()
                 await deepseek.finish(output)
             else:
+                output = (
+                    result.reasoning_content + f"\n----\n{result.content}"
+                    if result.reasoning_content and config.enable_send_thinking and result.content
+                    else result.content
+                )
                 await deepseek.finish(output)
 
         def handler(event: Event):
@@ -266,7 +267,7 @@ async def _(
 
             output = (
                 cached_reasoning_content + f"\n----\n{result.content}"
-                if cached_reasoning_content and result.content
+                if cached_reasoning_content and config.enable_send_thinking and result.content
                 else result.content
             )
 

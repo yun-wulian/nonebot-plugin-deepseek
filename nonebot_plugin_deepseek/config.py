@@ -50,6 +50,8 @@ class ScopedConfig(BaseModel):
     """Character Preset"""
     md_to_pic: bool = False
     """Text to Image"""
+    enable_send_thinking: bool = False
+    """Whether to send model thinking chain"""
 
     def get_enable_models(self) -> list[str]:
         return [model.name for model in self.enabled_models]
