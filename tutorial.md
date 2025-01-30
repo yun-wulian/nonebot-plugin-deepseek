@@ -24,16 +24,24 @@ ollama run deepseek-r1:7b
 
 接入本地模型，需要配置
 
-- `deepseek__base_url`：可填写为 `localhost:11434/v1`
-- `deepseek__api_key`：~~随便写~~
-- `deepseek__enable_models`：添加你运行的模型名称。如：`["deepseek-chat", "deepseek-reasoner", "deepseek-r1:7b"]`
+- `deepseek__base_url`
+- `deepseek__api_key`
+- `deepseek__enable_models`
 
-下面是一份示例配置
+配置示例
 
 ```bash
-deepseek__base_url = localhost:11434/v1
-deepseek__api_key = "ollama"
-deepseek__enable_models = ["deepseek-chat", "deepseek-reasoner", "deepseek-r1:7b"]
+deepseek__api_key = "sk-xxx"
+deepseek__enabled_models='
+[
+  { "name": "deepseek-chat" },
+  { "name": "deepseek-reasoner" },
+  {
+    "name": "deepseek-r1:7b",
+    "base_url": "localhost:11434/v1"
+  }
+]
+'
 ```
 
 ## 使用模型
