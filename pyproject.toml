@@ -32,6 +32,11 @@ adapters = [
 fastapi = [
     "nonebot2[fastapi]>=2.4.1",
 ]
+test = [
+    "pytest>=8.3.4",
+    "nonebug>=0.4.3",
+    "pytest-asyncio>=0.25.3",
+]
 
 [tool.pdm.dev-dependencies]
 dev = [
@@ -82,6 +87,9 @@ keep-runtime-typing = true
 pythonVersion = "3.9"
 pythonPlatform = "All"
 typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["pdm-backend"]

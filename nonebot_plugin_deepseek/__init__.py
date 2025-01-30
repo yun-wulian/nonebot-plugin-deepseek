@@ -42,6 +42,7 @@ from . import hook as hook
 from .function_call import registry
 from .exception import RequestException
 from .extension import CleanDocExtension
+from .utils import extract_content_and_think
 from .config import Config, config, model_config
 
 __plugin_meta__ = PluginMetadata(
@@ -198,11 +199,13 @@ async def _(
                 completion = await API.chat(message, model=model_name.result)
                 result = completion.choices[0].message
 
+            ds_content, ds_think = extract_content_and_think(result)
+
             if is_to_pic:
                 output = (
-                    f"<blockquote><p> {result.reasoning_content} </p></blockquote>" + result.content
-                    if result.reasoning_content and config.enable_send_thinking and result.content
-                    else result.content
+                    f"<blockquote><p> {ds_think} </p></blockquote>" + ds_content
+                    if ds_think and config.enable_send_thinking and ds_content
+                    else ds_content
                 )
                 unimsg = UniMessage.image(raw=await md_to_pic(output))  # type: ignore
                 if unimsg:
@@ -210,9 +213,9 @@ async def _(
                 await deepseek.finish(output)
             else:
                 output = (
-                    result.reasoning_content + f"\n----\n{result.content}"
-                    if result.reasoning_content and config.enable_send_thinking and result.content
-                    else result.content
+                    ds_think + f"\n----\n{ds_content}"
+                    if ds_think and config.enable_send_thinking and ds_content
+                    else ds_content
                 )
                 await deepseek.finish(output)
 
@@ -234,7 +237,8 @@ async def _(
 
             completion = await API.chat(message, model=model_name.result)
             result = completion.choices[0].message
-            cached_reasoning_content = result.reasoning_content
+            ds_content, ds_think = extract_content_and_think(result)
+
             result.reasoning_content = None
             message.append(asdict(result))
 
@@ -252,9 +256,9 @@ async def _(
                 continue
 
             output = (
-                cached_reasoning_content + f"\n----\n{result.content}"
-                if cached_reasoning_content and config.enable_send_thinking and result.content
-                else result.content
+                ds_think + f"\n----\n{ds_content}"
+                if ds_think and config.enable_send_thinking and ds_content
+                else ds_content
             )
 
             if not output:
