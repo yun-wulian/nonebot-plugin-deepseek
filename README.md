@@ -98,7 +98,7 @@ plugins = ["nonebot_plugin_deepseek"]
 |           :---------------------------:           | :--: |                   :---------------------------:                  |
 |                 deepseek__api_key                 |  是  |                                无                                |
 |              deepseek__enable_models              |  否  |  [{ "name": "deepseek-chat" }, { "name": "deepseek-reasoner" }]  |
-|                  deepseek__prompt                 |  否  |                   You are a helpful assistant.                   |
+|                  deepseek__prompt                 |  否  |                                无                                |
 |                deepseek__md_to_pic                |  否  |                               False                              |
 |           deepseek__enable_send_thinking          |  否  |                               False                              |
 

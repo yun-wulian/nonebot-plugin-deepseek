@@ -10,7 +10,7 @@ class ModelConfig:
     def __init__(self) -> None:
         self.file: Path = store.get_plugin_config_dir() / "config.json"
         self.default_model: str = config.get_enable_models()[0]
-        self.default_prompt: str = "You are a helpful assistant."  # 暂时用不到
+        self.default_prompt: str = config.prompt  # 暂时用不到
         self.load()
 
     def load(self):
@@ -49,7 +49,7 @@ class ScopedConfig(BaseModel):
         CustomModel(name="deepseek-reasoner"),
     ]
     """List of models configurations"""
-    prompt: str = "You are a helpful assistant."
+    prompt: str = ""
     """Character Preset"""
     md_to_pic: bool = False
     """Text to Image"""

@@ -18,7 +18,7 @@ class API:
     async def chat(cls, message: list[dict[str, str]], model: str = "deepseek-chat") -> ChatCompletions:
         """普通对话"""
         json = {
-            "messages": [{"content": config.prompt, "role": "system"}] + message,
+            "messages": [{"content": config.prompt, "role": "user"}] + message if config.prompt else message,
             "model": model,
         }
         logger.debug(f"使用模型 {model}")
