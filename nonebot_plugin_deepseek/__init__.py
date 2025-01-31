@@ -167,7 +167,7 @@ async def _(
 @deepseek.handle()
 async def _(
     content: Match[tuple[str, ...]],
-    model_name: Query[str] = Query("use-model.model"),
+    model_name: Query[str] = Query("use-model.model", model_config.default_model),
     context_option: Query[bool] = Query("with-context.value"),
 ):
     if not content.available:
@@ -180,8 +180,6 @@ async def _(
         chat_content = text
     else:
         chat_content = " ".join(content.result)
-
-    model_name.result = model_config.default_model
 
     message = [{"role": "user", "content": chat_content}]
 
