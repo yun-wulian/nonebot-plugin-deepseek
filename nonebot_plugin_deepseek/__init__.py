@@ -5,7 +5,8 @@ import httpx
 from nonebot import require
 from nonebot.adapters import Event
 from nonebot.params import Depends
-from nonebot.permission import SuperUser
+from nonebot.matcher import Matcher
+from nonebot.permission import User, SuperUser, Permission
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_waiter")
@@ -166,6 +167,8 @@ async def _(
 
 @deepseek.handle()
 async def _(
+    event: Event,
+    matcher: Matcher,
     content: Match[tuple[str, ...]],
     model_name: Query[str] = Query("use-model.model", model_config.default_model),
     context_option: Query[bool] = Query("with-context.value"),
@@ -226,7 +229,8 @@ async def _(
                 return False
             return text
 
-        waiter = Waiter(waits=["message"], handler=handler, matcher=deepseek)
+        permission = Permission(User.from_event(event, perm=matcher.permission))
+        waiter = Waiter(waits=["message"], handler=handler, matcher=deepseek, permission=permission)
         waiter.future.set_result("")
 
         async for resp in waiter(default=False):
