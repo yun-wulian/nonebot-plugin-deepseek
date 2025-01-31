@@ -174,7 +174,10 @@ async def _(
         resp = await prompt("你想对 DeepSeek 说什么呢？", timeout=60)
         if resp is None:
             await deepseek.finish("等待超时")
-        chat_content = resp.extract_plain_text()
+        text = resp.extract_plain_text()
+        if text in ["结束", "取消", "done"]:
+            await deepseek.finish("已结束对话")
+        chat_content = text
     else:
         chat_content = " ".join(content.result)
 
