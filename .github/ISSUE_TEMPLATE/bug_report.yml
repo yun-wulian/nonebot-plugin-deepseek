@@ -56,6 +56,14 @@ body:
       description: 填写连接 NoneBot 的协议端及版本
       placeholder: e.g. NapCat 4.4.15
 
+  - type: input
+    id: env-model
+    attributes:
+      label: 使用模型
+      description: 填写使用的模型名称
+      placeholder: e.g. deepseek-r1:7b
+
+
   - type: textarea
     id: describe
     attributes:
