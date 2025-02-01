@@ -1,9 +1,14 @@
 import json
 from pathlib import Path
+from typing import Any, Union, Optional
 
-from pydantic import Field, BaseModel
+from nonebot.compat import PYDANTIC_V2
 import nonebot_plugin_localstore as store
 from nonebot import logger, get_plugin_config
+from pydantic import Field, BaseModel, ConfigDict
+
+from .compat import model_validator
+from ._types import NOT_GIVEN, NotGivenOr
 
 
 class ModelConfig:
@@ -39,6 +44,86 @@ class CustomModel(BaseModel):
     """Model Name"""
     base_url: str = "https://api.deepseek.com"
     """Custom base URL for this model (optional)"""
+    max_tokens: int = Field(default=4090, gt=1, lt=8192)
+    """
+    限制一次请求中模型生成 completion 的最大 token 数
+    - `deepseek-chat`: Integer between 1 and 8192. Default is 4090.
+    - `deepseek-reasoner`: Default is 4K, maximum is 8K.
+    """
+    frequency_penalty: Union[int, float] = Field(default=0, ge=-2, le=2)
+    """
+    Discourage the model from repeating the same words or phrases too frequently within the generated text
+    """
+    presence_penalty: Union[int, float] = Field(default=0, ge=-2, le=2)
+    """Encourage the model to include a diverse range of tokens in the generated text"""
+    stop: Optional[Union[str, list[str]]] = Field(default=None)
+    """
+    Stop generating tokens when encounter these words.
+    Note that the list contains a maximum of 16 string.
+    """
+    temperature: Union[int, float] = Field(default=1, ge=0, le=2)
+    """Sampling temperature. It is not recommended to used it with top_p"""
+    top_p: Union[int, float] = Field(default=1, ge=0, le=1)
+    """Alternatives to sampling temperature. It is not recommended to used it with temperature"""
+    logprobs: NotGivenOr[Union[bool, None]] = Field(default=NOT_GIVEN)
+    """Whether to return the log probability of the output token."""
+    top_logprobs: NotGivenOr[int] = Field(default=NOT_GIVEN, le=20)
+    """Specifies that the most likely token be returned at each token position."""
+
+    if PYDANTIC_V2:
+        model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
+    else:
+
+        class Config:
+            extra = "allow"
+            arbitrary_types_allowed = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_max_token(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            name = data.get("name")
+
+            if "max_tokens" not in data:
+                if name == "deepseek-reasoner":
+                    data["max_tokens"] = 4000
+                else:
+                    data["max_tokens"] = 4090
+
+            stop = data.get("stop")
+            if isinstance(stop, list) and len(stop) >= 16:
+                raise ValueError("字段 `stop` 最多允许设置 16 个字符")
+
+            if name == "deepseek-chat":
+                temperature = data.get("temperature")
+                top_p = data.get("top_p")
+                if temperature and top_p:
+                    logger.warning("不建议同时修改 `temperature` 和 `top_p` 字段")
+
+                top_logprobs = data.get("top_logprobs")
+                logprobs = data.get("logprobs")
+                if top_logprobs and logprobs is False:
+                    raise ValueError("指定 `top_logprobs` 参数时，`logprobs` 必须为 True")
+
+            elif name == "deepseek-reasoner":
+                max_tokens = data.get("max_tokens")
+                if max_tokens and max_tokens > 8000:
+                    logger.warning(f"模型 {name} `max_tokens` 字段最大为 8000")
+
+                unsupported_params = ["temperature", "top_p", "presence_penalty", "frequency_penalty"]
+                params_present = [param for param in unsupported_params if param in data]
+                if params_present:
+                    logger.warning(f"模型 {name} 不支持设置 {', '.join(params_present)}")
+
+                logprobs = data.get("logprobs")
+                top_logprobs = data.get("top_logprobs")
+                if logprobs or top_logprobs:
+                    raise ValueError(f"模型 {name} 不支持设置 logprobs、top_logprobs")
+
+        return data
+
+    def to_dict(self):
+        return self.model_dump(exclude_unset=True, exclude_none=True, exclude={"name", "base_url"})
 
 
 class ScopedConfig(BaseModel):
@@ -64,6 +149,13 @@ class ScopedConfig(BaseModel):
         for model in self.enable_models:
             if model.name == model_name:
                 return model.base_url
+        raise ValueError(f"Model {model_name} not enabled")
+
+    def get_model_config(self, model_name: str) -> CustomModel:
+        """Get model config"""
+        for model in self.enable_models:
+            if model.name == model_name:
+                return model
         raise ValueError(f"Model {model_name} not enabled")
 
 

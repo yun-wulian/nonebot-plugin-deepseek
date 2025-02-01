@@ -94,13 +94,52 @@ plugins = ["nonebot_plugin_deepseek"]
 > `enable_models` 为 [`CustomModel`](https://github.com/KomoriDev/nonebot-plugin-deepseek/blob/ee9f0b0f0568eedb3eb87423e6c1bf271787ab76/nonebot_plugin_deepseek/config.py#L34) 结构的字典，若无接入本地模型的需要则无需修改  
 > 若要接入本地模型，请参见：👉 [文档](./tutorial.md)  
 
-|                      配置项                       | 必填 |                              默认值                              |
-|           :---------------------------:           | :--: |                   :---------------------------:                  |
-|                 deepseek__api_key                 |  是  |                                无                                |
-|              deepseek__enable_models              |  否  |  [{ "name": "deepseek-chat" }, { "name": "deepseek-reasoner" }]  |
-|                  deepseek__prompt                 |  否  |                                无                                |
-|                deepseek__md_to_pic                |  否  |                               False                              |
-|           deepseek__enable_send_thinking          |  否  |                               False                              |
+|           配置项             |必填|                            默认值                            |                  说明                  |
+|:---------------------------: |:--:|                 :---------------------------:                |             :-----------:             |
+|      deepseek__api_key       | 是 |                              无                              |                API Key                |
+|   deepseek__enable_models    | 否 |[{ "name": "deepseek-chat" }, { "name": "deepseek-reasoner" }]|启用的模型 [配置说明](#enable_models-配置说明)|
+|       deepseek__prompt       | 否 |                              无                              |                模型预设                |
+|     deepseek__md_to_pic      | 否 |                             False                            |        是否启用 Markdown 转图片        |
+|deepseek__enable_send_thinking| 否 |                             False                            |             是否发送思维链             |
+
+### `enable_models` 配置说明
+
+`enable_models` 为 [`CustomModel`](https://github.com/KomoriDev/nonebot-plugin-deepseek/blob/ee9f0b0f0568eedb3eb87423e6c1bf271787ab76/nonebot_plugin_deepseek/config.py#L34) 结构的字典，用于控制不同模型的配置，包含的字段有
+
+> [!TIP]
+> 以下字段均在 [DeepSeek API 文档](https://api-docs.deepseek.com/zh-cn/) 有更详细的介绍  
+> `deepseek-reasoner` 模型不支持 `logprobs` 和 `top_logprobs` 参数
+
+- `name`: 模型名称（必填）
+- `base_url`: 接口地址（默认为：<https://api.deepseek.com>）（自建模型必填）
+- `max_tokens`: 模型生成补全的最大 token 数
+  - `deepseek-chat`: 介于 1 到 8192 间的整数，默认使用 4096
+  - `deepseek-reasoner`: 默认为 4K，最大为 8K
+- `frequency_penalty`: 用于阻止模型在生成的文本中过于频繁地重复相同的单词或短语
+- `presence_penalty`: 用于鼓励模型在生成的文本中包含各种标记
+- `stop`: 遇到这些词时停止生成token
+- `temperature`: 采样温度，不建议和 `top_p` 一起修改
+- `top_p`: 采样温度的替代方案。不建议和 `temperature` 一起修改
+- `logprobs`: 是否返回所输出 token 的对数概率
+- `top_logprobs`: 指定在每个 token 位置返回最有可能的 tokens
+
+配置示例:
+
+```bash
+deepseek__enable_models='
+[
+  {
+    "name": "deepseek-chat",
+    "max_tokens": 2048,
+    "top_p": 0.5
+  },
+  {
+    "name": "deepseek-reasoner",
+    "max_tokens": 8000
+  }
+]
+'
+```
 
 ## 🎉 使用
 
