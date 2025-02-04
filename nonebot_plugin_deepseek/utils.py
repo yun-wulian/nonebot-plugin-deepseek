@@ -131,6 +131,8 @@ class DeepSeekHandler:
             completion = await API.chat(self.context, self.model.name)
             return completion.choices[0].message
         except (httpx.ReadTimeout, httpx.RequestError):
+            if not self.is_contextual:
+                await self.matcher.finish("Oops! 网络超时，请稍后重试")
             await self._handle_rollback(by_error=True)
 
     def _extract_content_and_think(self, message: Message) -> tuple[str, str]:
