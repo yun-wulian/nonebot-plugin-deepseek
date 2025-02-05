@@ -2,6 +2,7 @@ import httpx
 from nonebot.log import logger
 
 from ..config import config
+from ..compat import model_dump
 
 # from ..function_call import registry
 from ..exception import RequestException
@@ -11,17 +12,18 @@ from ..schemas import Balance, ChatCompletions
 class API:
     _headers = {
         "Accept": "application/json",
-        "Authorization": f"Bearer {config.api_key}",
     }
 
     @classmethod
     async def chat(cls, message: list[dict[str, str]], model: str = "deepseek-chat") -> ChatCompletions:
         """普通对话"""
         model_config = config.get_model_config(model)
+
+        api_key = model_config.api_key or config.api_key
+        prompt = model_dump(model_config, exclude_none=True).get("prompt", config.prompt)
+
         json = {
-            "messages": [{"content": config.prompt, "role": "system"}] + message
-            if config.prompt and model == "deepseek-chat"
-            else message,
+            "messages": [{"content": prompt, "role": "system"}] + message if prompt else message,
             "model": model,
             **model_config.to_dict(),
         }
@@ -31,7 +33,7 @@ class API:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{model_config.base_url}/chat/completions",
-                headers={**cls._headers, "Content-Type": "application/json"},
+                headers={**cls._headers, "Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json=json,
                 timeout=50,
             )
@@ -40,12 +42,15 @@ class API:
         return ChatCompletions(**response.json())
 
     @classmethod
-    async def query_balance(cls) -> Balance:
-        """查询账号余额"""
+    async def query_balance(cls, model_name: str) -> Balance:
+        model_config = config.get_model_config(model_name)
+        api_key = model_config.api_key or config.api_key
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{config.get_model_url('deepseek-chat')}/user/balance",
-                headers=cls._headers,
+                f"{model_config.base_url}/user/balance",
+                headers={**cls._headers, "Authorization": f"Bearer {api_key}"},
             )
-
+        if response.status_code == 404:
+            raise RequestException("本地模型不支持查询余额，请更换默认模型")
         return Balance(**response.json())

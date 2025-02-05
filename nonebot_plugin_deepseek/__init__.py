@@ -35,6 +35,7 @@ else:
 from .apis import API
 from . import hook as hook
 from .utils import DeepSeekHandler
+from .exception import RequestException
 from .extension import CleanDocExtension
 from .config import Config, config, model_config
 
@@ -114,7 +115,7 @@ async def _(is_superuser: bool = Depends(SuperUser())):
     if not is_superuser:
         return
     try:
-        balances = await API.query_balance()
+        balances = await API.query_balance(model_config.default_model)
 
         await deepseek.finish(
             "".join(
@@ -128,6 +129,8 @@ async def _(is_superuser: bool = Depends(SuperUser())):
             )
         )
     except ValueError as e:
+        await deepseek.finish(str(e))
+    except RequestException as e:
         await deepseek.finish(str(e))
 
 

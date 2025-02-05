@@ -44,6 +44,10 @@ class CustomModel(BaseModel):
     """Model Name"""
     base_url: str = "https://api.deepseek.com"
     """Custom base URL for this model (optional)"""
+    api_key: Optional[str] = None
+    """Custom API Key for the model (optional)"""
+    prompt: Optional[str] = None
+    """Custom character preset for the model (optional)"""
     max_tokens: int = Field(default=4090, gt=1, lt=8192)
     """
     限制一次请求中模型生成 completion 的最大 token 数
@@ -123,7 +127,9 @@ class CustomModel(BaseModel):
         return data
 
     def to_dict(self):
-        return model_dump(self, exclude_unset=True, exclude_none=True, exclude={"name", "base_url"})
+        return model_dump(
+            self, exclude_unset=True, exclude_none=True, exclude={"name", "base_url", "api_key", "prompt"}
+        )
 
 
 class ScopedConfig(BaseModel):
