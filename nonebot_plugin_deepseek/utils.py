@@ -110,10 +110,10 @@ class DeepSeekHandler:
             status_msg = f"Oops! 连接异常，已自动{action_desc}。" if by_error else f"已{action_desc}。"
 
             remaining_context = (
-                "空" if not self.context else f'{self.context[-1]["role"]}: {self.context[-1]["content"]}'
+                "空" if not self.context else f"{self.context[-1]['role']}: {self.context[-1]['content']}"
             )
 
-            await UniMessage.text(f"{status_msg}当前上下文为:\n{remaining_context}\n" "user:（等待输入）").send(
+            await UniMessage.text(f"{status_msg}当前上下文为:\n{remaining_context}\nuser:（等待输入）").send(
                 reply_to=self.message_id
             )
         elif by_error and len(self.context) > 0:
