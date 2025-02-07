@@ -50,6 +50,8 @@ _✨ NoneBot DeepSeek 插件 ✨_
 
 NoneBot DeepSeek 插件。接入 DeepSeek 模型，提供智能对话与问答功能
 
+Wiki: 👉 [传送门](https://github.com/KomoriDev/nonebot-plugin-deepseek/wiki)
+
 ## 💿 安装
 
 以下提到的方法任选 **其一** 即可
