@@ -172,7 +172,7 @@ class DeepSeekHandler:
             return (
                 f"<blockquote><p>{thinking}</p></blockquote>{content}"
                 if self.is_to_pic
-                else f"{thinking}\n----\n{content}"
+                else f"{thinking}\n\n--------------------\n\n{content}"
             )
         return content
 
