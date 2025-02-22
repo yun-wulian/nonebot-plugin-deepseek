@@ -52,6 +52,19 @@ NoneBot DeepSeek 插件。接入 DeepSeek 模型，提供智能对话与问答�
 
 Wiki: 👉 [传送门](https://github.com/KomoriDev/nonebot-plugin-deepseek/wiki)
 
+> [!IMPORTANT]
+> **收藏项目**，你将从 GitHub 上无延迟地接收所有发布通知～⭐️
+
+<img width="100%" src="https://starify.komoridevs.icu/api/starify?owner=KomoriDev&repo=nonebot-plugin-deepseek" alt="starify" />
+
+<details>
+  <summary><kbd>Star History</kbd></summary>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=KomoriDev/nonebot-plugin-deepseek&theme=dark&type=Date" />
+    <img width="100%" src="https://star-history.com/#KomoriDev/nonebot-plugin-deepseek&Date" />
+  </picture>
+</details>
+
 ## 💿 安装
 
 以下提到的方法任选 **其一** 即可
