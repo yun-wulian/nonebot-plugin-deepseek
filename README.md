@@ -224,6 +224,25 @@ bot: (使用模型 deepseek-chat)
   </a>
 </p>
 
+## 💖 鸣谢
+  
+- [`KomoriDev/Starify`](https://github.com/KomoriDev/Starify)：提供了引人注目的徽章
+
+### 贡献者们
+
+<a href="#-鸣谢">
+  <img src="https://img.shields.io/badge/all_contributors-5-orange.svg?style=flat-square" alt="contributors" />
+</a>
+<a href="https://afdian.com/@komoridev">
+  <img src="https://img.shields.io/badge/all_sponsors-17-946ce6.svg?style=flat-square" alt="sponsors" />
+</a>
+
+感谢这些大佬对本项目作出的贡献:
+
+<a href="https://github.com/KomoriDev/nonebot-plugin-deepseek/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=KomoriDev/nonebot-plugin-deepseek&max=1000" alt="contributors" />
+</a>
+
 ## 📄 许可证
 
 本项目使用 [MIT](./LICENSE) 许可证开源
