@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class PromptTokensDetails:
-    cached_tokens: int
+    cached_tokens: Optional[int] = None
 
 
 @dataclass
