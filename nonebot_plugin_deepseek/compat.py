@@ -1,12 +1,8 @@
 from typing import Literal, overload
 
 from nonebot.compat import PYDANTIC_V2
-from nonebot.compat import model_dump as model_dump
 
-__all__ = (
-    "model_dump",
-    "model_validator",
-)
+__all__ = ("model_validator",)
 
 
 if PYDANTIC_V2:

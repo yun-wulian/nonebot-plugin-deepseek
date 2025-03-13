@@ -48,7 +48,9 @@ class Content:
     def __post_init__(self) -> None:
         if self.top_logprobs:
             self.top_logprobs = [
-                TopLogprobs(**top_logprob) if isinstance(top_logprob, dict) else top_logprob
+                TopLogprobs(**top_logprob)
+                if isinstance(top_logprob, dict)
+                else top_logprob
                 for top_logprob in self.top_logprobs
             ]
 
@@ -61,4 +63,7 @@ class Logprobs:
 
     def __post_init__(self) -> None:
         if self.content:
-            self.content = [Content(**content) if isinstance(content, dict) else content for content in self.content]
+            self.content = [
+                Content(**content) if isinstance(content, dict) else content
+                for content in self.content
+            ]

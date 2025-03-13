@@ -8,7 +8,8 @@ from pathlib import Path
 from collections.abc import Callable
 from typing import Any, Union, Optional
 
-from ..log import ds_logger
+from nonebot.log import logger
+
 from ..schemas import ToolCalls
 
 
@@ -25,7 +26,9 @@ class FunctionRegistry:
             Any: "any",
         }
 
-    def load(self, *directories: str, base_dir: Optional[Union[Path, str]] = None) -> None:
+    def load(
+        self, *directories: str, base_dir: Optional[Union[Path, str]] = None
+    ) -> None:
         base_path = Path(base_dir).resolve() if base_dir else Path.cwd()
 
         if str(base_path) not in sys.path:
@@ -35,7 +38,7 @@ class FunctionRegistry:
             dir_path = (base_path / rel_dir).resolve()
 
             if not (dir_path / "__init__.py").exists():
-                ds_logger("WARNING", f"Skipping non-package directory: {dir_path}")
+                logger.warning(f"Skipping non-package directory: {dir_path}")
                 continue
 
             for py_file in dir_path.glob("*.py"):
@@ -57,7 +60,7 @@ class FunctionRegistry:
                     sys.modules[module_name] = module
                     spec.loader.exec_module(module)
                 except Exception as e:
-                    ds_logger("ERROR", f"Failed to loaded {module_name}: {str(e)}")
+                    logger.error(f"Failed to loaded {module_name}: {str(e)}")
 
     def register(self, name: Optional[str] = None, description: Optional[str] = None):
         def decorator(func: Callable):
@@ -79,7 +82,7 @@ class FunctionRegistry:
                 "raw_parameters": parameters,
                 "func": wrapper,
             }
-            ds_logger("DEBUG", f'Succeeded to load function "{func_name}"')
+            logger.debug(f'Succeeded to load function "{func_name}"')
             return wrapper
 
         return decorator
@@ -92,7 +95,9 @@ class FunctionRegistry:
         parameters = {}
 
         for name, param in sig.parameters.items():
-            param_type = param.annotation if param.annotation != inspect.Parameter.empty else Any
+            param_type = (
+                param.annotation if param.annotation != inspect.Parameter.empty else Any
+            )
             parameters[name] = {
                 "type": param_type,
                 "description": param_docs.get(name, ""),
@@ -183,7 +188,7 @@ class FunctionRegistry:
         if inspect.isawaitable(result):
             result = await result
 
-        ds_logger("DEBUG", f"Calling {func_name} function")
+        logger.debug(f"Calling {func_name} function")
         return result
 
     def _convert_value(self, value: Any, param_type: type) -> Any:
