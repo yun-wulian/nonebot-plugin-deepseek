@@ -193,7 +193,7 @@ async def _(
         if not model_name.available:
             model_name.result = model_config.default_model
 
-        message = [{"role": "system","content": "扮演P5R的芳泽霞进行对话，你性格开朗，常用敬语和积极措辞。请用简体中文口语化表达，避免二次元腔调。"},{"role": "user", "content": chat_content}]
+        message = [{"role": "system","content": config.prompt},{"role": "user", "content": chat_content}]
 
         try:
             def handler(event: Event):
