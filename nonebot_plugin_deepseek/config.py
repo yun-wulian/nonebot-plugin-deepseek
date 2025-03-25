@@ -16,6 +16,7 @@ class ModelConfig:
         self.file: Path = store.get_plugin_config_dir() / "config.json"
         self.default_model: str = config.get_enable_models()[0]
         self.default_prompt: str = config.prompt  # 暂时用不到
+        self.default_sub_prompt: str = config.sub_prompt  # 新增
         self.load()
 
     def load(self):
@@ -28,11 +29,13 @@ class ModelConfig:
             data = json.load(f)
             self.default_model = data.get("default_model", self.default_model)
             self.default_prompt = data.get("default_prompt", self.default_prompt)
+            self.default_sub_prompt = data.get("default_sub_prompt", self.default_sub_prompt)
 
     def save(self):
         config_data = {
             "default_model": self.default_model,
             "default_prompt": self.default_prompt,
+            "default_sub_prompt": self.default_sub_prompt,  # 新增
         }
         with open(self.file, "w") as f:
             json.dump(config_data, f, indent=2)
@@ -86,9 +89,9 @@ class CustomModel(BaseModel):
 
             if "max_tokens" not in data:
                 if name == "deepseek-reasoner":
-                    data["max_tokens"] = 4000
+                    data["max_tokens"] = 8000
                 else:
-                    data["max_tokens"] = 4090
+                    data["max_tokens"] = 8000
 
             stop = data.get("stop")
             if isinstance(stop, list) and len(stop) >= 16:
@@ -129,6 +132,7 @@ class CustomModel(BaseModel):
 class ScopedConfig(BaseModel):
     api_key: str = ""
     """Your API Key from deepseek"""
+    sub_prompt: str = ""  
     enable_models: list[CustomModel] = [
         CustomModel(name="deepseek-chat"),
         CustomModel(name="deepseek-reasoner"),
