@@ -79,6 +79,7 @@ deepseek = on_alconna(
             help_text="指定模型",
         ),
         Option("--with-context", help_text="启用多轮对话"),
+        Option("--force-stop", help_text="强制中断当前对话"),
         Subcommand("--balance", help_text="查看余额"),
         Subcommand(
             "model",
@@ -109,6 +110,7 @@ deepseek = on_alconna(
 )
 
 deepseek.shortcut("霞", {"command": "todeepseek --with-context","fuzzy": True,"prefix": False})
+deepseek.shortcut("中止", {"command": "todeepseek --force-stop","fuzzy": False,"prefix": True})
 deepseek.shortcut("查询余额", {"command": "todeepseek --balance", "fuzzy": False, "prefix": True})
 deepseek.shortcut("模型列表", {"command": "todeepseek model --list", "fuzzy": False, "prefix": True})
 deepseek.shortcut("设置默认模型", {"command": "todeepseek model --set-default", "fuzzy": True, "prefix": True})
@@ -149,8 +151,9 @@ async def handle_chat_core(
         message = []
         if system_prompt := (config.prompt + (config.sub_prompt if is_superuser and config.sub_prompt else "")):
             message.append({"role": "system", "content": system_prompt})
-        logger.info(f"Applied system prompt: {system_prompt}")
+        #logger.info(f"Applied system prompt: {system_prompt}")
         message.append({"role": "user", "content": chat_content})
+        logger.info(message)
 
         try:
             def handler(e: Event):
@@ -167,7 +170,6 @@ async def handle_chat_core(
             async for resp in waiter(default=False):
                 async with lock:
                     if current_user != user_id:
-                        await bot.send(event, "对话占用中", at_sender=True)
                         break
                 
                 if resp is False:
@@ -219,6 +221,23 @@ async def handle_chat_core(
                 current_user = None
         raise e
 
+@deepseek.assign("force-stop")
+async def force_stop(
+    bot: Bot,
+    event: Event,
+    is_superuser: bool = Depends(SuperUser())
+):
+    if not is_superuser:
+        return
+    global current_user
+    async with lock:
+        if current_user:
+            target_user = current_user
+            current_user = None  # 清空占用状态
+            await bot.send(event, f"已强制中断用户 {target_user} 的对话")
+        else:
+            await bot.send(event, "当前没有进行中的对话")
+    await deepseek.finish()
 
 @deepseek.assign("balance")
 async def _(is_superuser: bool = Depends(SuperUser())):
