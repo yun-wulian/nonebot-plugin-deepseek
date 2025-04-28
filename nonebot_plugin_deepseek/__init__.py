@@ -115,7 +115,29 @@ deepseek.shortcut("查询余额", {"command": "todeepseek --balance", "fuzzy": F
 deepseek.shortcut("模型列表", {"command": "todeepseek model --list", "fuzzy": False, "prefix": True})
 deepseek.shortcut("设置默认模型", {"command": "todeepseek model --set-default", "fuzzy": True, "prefix": True})
 
-# 提取核心处理逻辑为独立函数
+# 新增图片处理函数
+async def process_images(bot: Bot, event: Event) -> list[str]:
+    """处理消息中的图片并返回识别文本列表"""
+    images = [seg for seg in event.message if seg.type == "image"]
+    ocr_texts = []
+    
+    for img in images:
+        try:
+            image_url = img.data["url"]
+            result = await bot.call_api("ocr_image", image=image_url)
+            if texts := [t["text"] for t in result.get("texts", [])]:
+                ocr_texts.extend(texts)
+                logger.success(f"成功识别图片内容：{texts}")
+            else:
+                await bot.send(event, "未识别到图片中的文字", at_sender=True)
+        except httpx.ReadTimeout:
+            await bot.send(event, "图片识别超时，请重试", at_sender=True)
+        except Exception as e:
+            logger.error(f"OCR识别失败: {e}")
+            await bot.send(event, f"图片识别失败：{str(e)}", at_sender=True)
+    
+    return ocr_texts
+
 async def handle_chat_core(
     bot: Bot,
     event: Event,
@@ -134,16 +156,25 @@ async def handle_chat_core(
         current_user = user_id
     
     try:
+        # 处理图片内容
+        text_input = []
+
         if not content.available:
-            resp = await prompt("你想对 DeepSeek 说什么呢？", timeout=60)
+            resp = await prompt("你想对 DeepSeek 说什么呢？（可以发送图片或文字）", timeout=600)  # 修改提示语
             if resp is None:
                 await matcher.finish("等待超时")
             text = resp.extract_plain_text()
             if text in ["结束", "取消", "done"]:
                 await matcher.finish("已结束对话")
-            chat_content = text
+            text_input.append(text)
         else:
-            chat_content = " ".join(content.result)
+            text_input = list(content.result)
+
+        ocr_texts = await process_images(bot, event)
+        # 合并文本和图片内容
+        combined_content = "\n".join(text_input + ocr_texts)
+        if not combined_content.strip():
+            await matcher.finish("请输入有效内容或发送包含文字的图片")
 
         if not model_name.available:
             model_name.result = model_config.default_model
@@ -151,17 +182,21 @@ async def handle_chat_core(
         message = []
         if system_prompt := (config.prompt + (config.sub_prompt if is_superuser and config.sub_prompt else "")):
             message.append({"role": "system", "content": system_prompt})
-        #logger.info(f"Applied system prompt: {system_prompt}")
-        message.append({"role": "user", "content": chat_content})
-        logger.info(message)
+        message.append({"role": "user", "content": combined_content})
+        logger.info(f"完整输入内容：{message}")
 
         try:
-            def handler(e: Event):
+            async def handler(e: Event):
+                # 处理多轮对话中的图片
+                ocr_texts = await process_images(bot, e)
                 text = e.get_plaintext().strip().lower()
-                if text in ["结束", "取消", "done"]:
-                    logger.info("已结束对话")
+                
+                if text in ["结束", "取消", "done"] and not ocr_texts:
                     return False
-                return text
+                
+                combined = "\n".join([text] + ocr_texts)
+                return combined if combined else False
+
             logger.info("已进入多轮对话")
             permission = Permission(User.from_event(event, perm=matcher.permission))
             waiter = Waiter(waits=["message"], handler=handler, matcher=deepseek, permission=permission)
@@ -172,20 +207,18 @@ async def handle_chat_core(
                     if current_user != user_id:
                         break
                 
-                if resp is False:
-                    await bot.send(event, "好的，再见！（微笑地挥手）", at_sender=True)
-                    await matcher.finish()
+                    if resp is False:
+                        await bot.send(event, "好的，再见！（微笑地挥手）", at_sender=True)
+                        await matcher.finish()
                 
-                if resp and isinstance(resp, str):
-                    # 添加用户消息
+                if resp:
                     message.append({"role": "user", "content": resp})
-                
-                # 调用API
+                    
                 completion = await API.chat(message, model=model_name.result)
                 result = completion.choices[0].message
                 ds_content, ds_think = extract_content_and_think(result)
                 logger.info(ds_think)
-                # 添加助手消息
+
                 assistant_message = {
                     "role": "assistant",
                     "content": ds_content,
@@ -193,7 +226,7 @@ async def handle_chat_core(
                 if result.tool_calls:
                     assistant_message["tool_calls"] = result.tool_calls
                 message.append(assistant_message)
-                # 处理工具调用
+
                 if result.tool_calls:
                     fc_result = await registry.execute_tool_call(result.tool_calls[0])
                     message.append({
@@ -203,7 +236,6 @@ async def handle_chat_core(
                     })
                     continue
 
-                # 发送回复
                 output = ds_content if ds_content else "error:未获取到有效回复"
                 await bot.send(event, output, at_sender=True)
 
@@ -219,7 +251,11 @@ async def handle_chat_core(
         async with lock:
             if current_user == user_id:
                 current_user = None
-        raise e
+        # 过滤 FinishedException
+        if str(e) == "FinishedException()":
+            pass
+        else:
+            await matcher.finish(f"处理出错：{str(e)}")
 
 @deepseek.assign("force-stop")
 async def force_stop(
