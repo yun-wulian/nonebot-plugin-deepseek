@@ -11,6 +11,7 @@ from nonebot.matcher import Matcher
 from nonebot.permission import User, SuperUser, Permission
 from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent
+from nonebot.rule import to_me
 
 require("nonebot_plugin_waiter")
 require("nonebot_plugin_alconna")
@@ -109,7 +110,8 @@ deepseek = on_alconna(
     extensions=[ReplyMergeExtension, CleanDocExtension],
 )
 
-deepseek.shortcut("霞", {"command": "todeepseek --with-context","fuzzy": True,"prefix": False})
+deepseek.shortcut("爱音", {"command": "todeepseek --with-context","fuzzy": True,"prefix": False})
+deepseek.shortcut("anon", {"command": "todeepseek --with-context","fuzzy": True,"prefix": False})
 deepseek.shortcut("中止", {"command": "todeepseek --force-stop","fuzzy": False,"prefix": True})
 deepseek.shortcut("查询余额", {"command": "todeepseek --balance", "fuzzy": False, "prefix": True})
 deepseek.shortcut("模型列表", {"command": "todeepseek model --list", "fuzzy": False, "prefix": True})
@@ -125,11 +127,29 @@ async def process_images(bot: Bot, event: Event) -> list[str]:
         try:
             image_url = img.data["url"]
             result = await bot.call_api("ocr_image", image=image_url)
-            if texts := [t["text"] for t in result.get("texts", [])]:
-                ocr_texts.extend(texts)
-                logger.success(f"成功识别图片内容：{texts}")
+            
+            # 处理不同的API返回格式
+            if isinstance(result, list):
+                # 处理返回的是列表的情况（如错误日志所示）
+                texts = [item.get("text", "") for item in result if item.get("text")]
+                if texts:
+                    ocr_texts.extend(texts)
+                    logger.success(f"成功识别图片内容：{texts}")
+                else:
+                    await bot.send(event, "未识别到图片中的文字", at_sender=True)
+            elif isinstance(result, dict) and "texts" in result:
+                # 处理返回的是字典且包含texts键的情况
+                texts = [t.get("text", "") for t in result["texts"] if t.get("text")]
+                if texts:
+                    ocr_texts.extend(texts)
+                    logger.success(f"成功识别图片内容：{texts}")
+                else:
+                    await bot.send(event, "未识别到图片中的文字", at_sender=True)
             else:
-                await bot.send(event, "未识别到图片中的文字", at_sender=True)
+                # 处理其他未知格式
+                logger.error(f"OCR API返回未知格式: {type(result)} - {result}")
+                await bot.send(event, "图片识别服务返回未知格式", at_sender=True)
+                
         except httpx.ReadTimeout:
             await bot.send(event, "图片识别超时，请重试", at_sender=True)
         except Exception as e:
@@ -341,6 +361,21 @@ async def _(
         model_name=model_name,
         is_superuser=is_superuser
     )
+
+at_me_matcher = on_message(priority=98, block=False,rule=to_me())  # 设置优先级低于命令处理器
+@at_me_matcher.handle()
+async def handle_private_chat(event: Event, matcher: Matcher, bot: Bot,is_superuser: bool = Depends(SuperUser())):
+    logger.info("已触发at我")
+    # 直接调用原有处理逻辑
+    await handle_chat_core(
+        bot=bot,
+        event=event,
+        matcher=matcher,
+        content=Match(result=(event.get_plaintext().strip(),),available=True),
+        model_name=Query(""),  # 使用默认模型
+        is_superuser=is_superuser
+    )
+
 
 private_matcher = on_message(priority=99, block=False)  # 设置优先级低于命令处理器
 @private_matcher.handle()
